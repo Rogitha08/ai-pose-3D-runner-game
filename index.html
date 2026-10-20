@@ -1,0 +1,2501 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Pose Runner 3D</title>
+
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            overflow: hidden;
+
+            background: #000;
+
+            font-family: Arial, sans-serif;
+
+            color: white;
+
+        }
+
+
+        #gameCanvas {
+
+            position: fixed;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100vw;
+
+            height: 100vh;
+
+        }
+
+
+        /* --------------------------------
+           HUD
+        -------------------------------- */
+
+        #hud {
+
+            position: fixed;
+
+            top: 20px;
+
+            left: 20px;
+
+            z-index: 10;
+
+            background: rgba(0, 0, 0, 0.55);
+
+            padding: 15px 20px;
+
+            border-radius: 12px;
+
+            min-width: 180px;
+
+        }
+
+
+        #score {
+
+            font-size: 28px;
+
+            font-weight: bold;
+
+        }
+
+
+        #speed {
+
+            margin-top: 5px;
+
+            font-size: 16px;
+
+        }
+
+
+        #pose {
+
+            margin-top: 8px;
+
+            font-size: 18px;
+
+        }
+
+
+        /* --------------------------------
+           CAMERA
+        -------------------------------- */
+
+        #cameraBox {
+
+            position: fixed;
+
+            right: 20px;
+
+            bottom: 20px;
+
+            z-index: 20;
+
+            width: 220px;
+
+            background: rgba(0, 0, 0, 0.7);
+
+            padding: 8px;
+
+            border-radius: 10px;
+
+        }
+
+
+        #cameraCanvas {
+
+            width: 100%;
+
+            display: block;
+
+            border-radius: 7px;
+
+        }
+
+
+        #cameraText {
+
+            text-align: center;
+
+            font-size: 13px;
+
+            margin-top: 5px;
+
+        }
+
+
+        /* --------------------------------
+           START SCREEN
+        -------------------------------- */
+
+        #startScreen {
+
+            position: fixed;
+
+            z-index: 30;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100vw;
+
+            height: 100vh;
+
+            background:
+
+                linear-gradient(rgba(0, 0, 0, 0.65),
+
+                    rgba(0, 0, 0, 0.85));
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+
+            align-items: center;
+
+            text-align: center;
+
+        }
+
+
+        #startScreen h1 {
+
+            font-size: 55px;
+
+            margin: 10px;
+
+        }
+
+
+        #startScreen p {
+
+            font-size: 20px;
+
+            color: #ddd;
+
+        }
+
+
+        button {
+
+            padding: 15px 35px;
+
+            font-size: 20px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            margin-top: 20px;
+
+        }
+
+
+        /* --------------------------------
+           GAME OVER
+        -------------------------------- */
+
+        #gameOver {
+
+            display: none;
+
+            position: fixed;
+
+            z-index: 40;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100vw;
+
+            height: 100vh;
+
+            background: rgba(0, 0, 0, 0.75);
+
+            justify-content: center;
+
+            align-items: center;
+
+            flex-direction: column;
+
+        }
+
+
+        #gameOver h1 {
+
+            font-size: 60px;
+
+            margin: 10px;
+
+        }
+
+
+        #finalScore {
+
+            font-size: 30px;
+
+        }
+
+
+        /* --------------------------------
+           CONTROLS
+        -------------------------------- */
+
+        #controls {
+
+            position: fixed;
+
+            left: 50%;
+
+            bottom: 20px;
+
+            transform: translateX(-50%);
+
+            z-index: 10;
+
+            background: rgba(0, 0, 0, 0.5);
+
+            padding: 10px 20px;
+
+            border-radius: 10px;
+
+            text-align: center;
+
+            font-size: 14px;
+
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- ================================
+         3D GAME
+    ================================= -->
+
+    <canvas id="gameCanvas"></canvas>
+
+
+    <!-- ================================
+         HUD
+    ================================= -->
+
+    <div id="hud">
+
+        <div id="score">
+
+            Score: 0
+
+        </div>
+
+
+        <div id="speed">
+
+            Speed: 1
+
+        </div>
+
+
+        <div id="pose">
+
+            Pose: Waiting
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================
+         CAMERA
+    ================================= -->
+
+    <div id="cameraBox">
+
+        <canvas id="cameraCanvas"></canvas>
+
+        <div id="cameraText">
+
+            AI Camera
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================
+         CONTROLS
+    ================================= -->
+
+    <div id="controls">
+
+        LEFT / RIGHT = Lanes
+        &nbsp; | &nbsp;
+        JUMP = Jump
+        &nbsp; | &nbsp;
+        DOWN = Duck
+
+    </div>
+
+
+    <!-- ================================
+         START SCREEN
+    ================================= -->
+
+    <div id="startScreen">
+
+        <h1>
+
+            🤖 AI POSE RUNNER
+
+        </h1>
+
+
+        <p>
+
+            Control the 3D game using your body
+
+        </p>
+
+
+        <p>
+
+            👈 LEFT &nbsp;
+            🧍 CENTER &nbsp;
+            👉 RIGHT
+
+            <br>
+
+            🙆 JUMP &nbsp;
+            🧎 DOWN
+
+        </p>
+
+
+        <button onclick="startGame()">
+
+            START GAME
+
+        </button>
+
+    </div>
+
+
+    <!-- ================================
+         GAME OVER
+    ================================= -->
+
+    <div id="gameOver">
+
+        <h1>
+
+            GAME OVER
+
+        </h1>
+
+
+        <div id="finalScore">
+
+            Score: 0
+
+        </div>
+
+
+        <button onclick="restartGame()">
+
+            PLAY AGAIN
+
+        </button>
+
+    </div>
+
+
+    <!-- ================================
+         THREE.JS
+    ================================= -->
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+
+    <!-- ================================
+         TENSORFLOW
+    ================================= -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+
+
+    <!-- ================================
+         TEACHABLE MACHINE POSE
+    ================================= -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+
+
+    <script>
+
+
+        // ==================================================
+        // MODEL
+        // ==================================================
+
+        const MODEL_PATH = "./model/";
+
+
+        let model;
+
+        let webcam;
+
+        let cameraCtx;
+
+
+        // ==================================================
+        // THREE.JS
+        // ==================================================
+
+        let scene;
+
+        let camera;
+
+        let renderer;
+
+
+        // ==================================================
+        // PLAYER
+        // ==================================================
+
+        let player;
+
+        let playerBody;
+
+        let playerHead;
+
+
+        const lanes = [
+
+            -4,
+
+            0,
+
+            4
+
+        ];
+
+
+        let playerLane = 1;
+
+
+        let targetX = 0;
+
+
+        let playerY = 0;
+
+
+        let jumping = false;
+
+        let ducking = false;
+
+
+        // ==================================================
+        // OBJECTS
+        // ==================================================
+
+        let obstacles = [];
+
+        let coins = [];
+
+        let tracks = [];
+
+        let buildings = [];
+
+
+        // ==================================================
+        // GAME
+        // ==================================================
+
+        let gameRunning = false;
+
+        let score = 0;
+
+        let speed = 0.45;
+
+        let spawnTimer = 0;
+
+        let coinTimer = 0;
+
+
+        // ==================================================
+        // POSE
+        // ==================================================
+
+        let lastPose = "";
+
+        let lastPoseTime = 0;
+
+
+        const POSE_DELAY = 500;
+
+        const CONFIDENCE = 0.70;
+
+
+        // ==================================================
+        // START GAME
+        // ==================================================
+
+        async function startGame() {
+
+
+            document.getElementById(
+                "startScreen"
+            ).style.display = "none";
+
+
+            try {
+
+
+                // Load AI model
+
+                model = await tmPose.load(
+
+                    MODEL_PATH +
+                    "model.json",
+
+                    MODEL_PATH +
+                    "metadata.json"
+
+                );
+
+
+                console.log(
+                    "AI MODEL LOADED"
+                );
+
+
+                // Webcam
+
+                webcam = new tmPose.Webcam(
+
+                    320,
+
+                    240,
+
+                    true
+
+                );
+
+
+                await webcam.setup();
+
+                await webcam.play();
+
+
+                const canvas =
+                    document.getElementById(
+                        "cameraCanvas"
+                    );
+
+
+                canvas.width = 320;
+
+                canvas.height = 240;
+
+
+                cameraCtx =
+                    canvas.getContext(
+                        "2d"
+                    );
+
+
+                // Create 3D world
+
+                createWorld();
+
+
+                gameRunning = true;
+
+
+                requestAnimationFrame(
+                    gameLoop
+                );
+
+
+                requestAnimationFrame(
+                    poseLoop
+                );
+
+
+            }
+
+            catch (error) {
+
+                console.error(error);
+
+
+                alert(
+                    "Camera or AI error: " +
+                    error.message
+                );
+
+            }
+
+        }
+
+
+        // ==================================================
+        // CREATE WORLD
+        // ==================================================
+
+        function createWorld() {
+
+
+            // ----------------------------------------------
+            // SCENE
+            // ----------------------------------------------
+
+            scene =
+                new THREE.Scene();
+
+
+            scene.background =
+                new THREE.Color(
+                    0x87ceeb
+                );
+
+
+            scene.fog =
+                new THREE.Fog(
+                    0x87ceeb,
+                    40,
+                    180
+                );
+
+
+            // ----------------------------------------------
+            // CAMERA
+            // ----------------------------------------------
+
+            camera =
+                new THREE.PerspectiveCamera(
+
+                    70,
+
+                    window.innerWidth /
+                    window.innerHeight,
+
+                    0.1,
+
+                    300
+
+                );
+
+
+            camera.position.set(
+
+                0,
+
+                7,
+
+                14
+
+            );
+
+
+            camera.lookAt(
+
+                0,
+
+                2,
+
+                -30
+
+            );
+
+
+            // ----------------------------------------------
+            // RENDERER
+            // ----------------------------------------------
+
+            renderer =
+                new THREE.WebGLRenderer({
+
+                    canvas:
+                        document.getElementById(
+                            "gameCanvas"
+                        ),
+
+                    antialias: true
+
+                });
+
+
+            renderer.setSize(
+
+                window.innerWidth,
+
+                window.innerHeight
+
+            );
+
+
+            renderer.setPixelRatio(
+
+                Math.min(
+                    window.devicePixelRatio,
+                    2
+                )
+
+            );
+
+
+            // ----------------------------------------------
+            // LIGHT
+            // ----------------------------------------------
+
+            const ambient =
+                new THREE.HemisphereLight(
+
+                    0xffffff,
+
+                    0x444444,
+
+                    2
+
+                );
+
+
+            scene.add(
+                ambient
+            );
+
+
+            const sun =
+                new THREE.DirectionalLight(
+
+                    0xffffff,
+
+                    2
+
+                );
+
+
+            sun.position.set(
+
+                10,
+
+                20,
+
+                10
+
+            );
+
+
+            scene.add(
+                sun
+            );
+
+
+            // ----------------------------------------------
+            // GROUND
+            // ----------------------------------------------
+
+            const groundGeometry =
+                new THREE.PlaneGeometry(
+
+                    40,
+
+                    500
+
+                );
+
+
+            const groundMaterial =
+                new THREE.MeshStandardMaterial({
+
+                    color:
+                        0x555555
+
+                });
+
+
+            const ground =
+                new THREE.Mesh(
+
+                    groundGeometry,
+
+                    groundMaterial
+
+                );
+
+
+            ground.rotation.x =
+                -Math.PI / 2;
+
+
+            ground.position.z =
+                -120;
+
+
+            scene.add(
+                ground
+            );
+
+
+            // ----------------------------------------------
+            // RAILWAY TRACKS
+            // ----------------------------------------------
+
+            createTracks();
+
+
+            // ----------------------------------------------
+            // BUILDINGS
+            // ----------------------------------------------
+
+            createBuildings();
+
+
+            // ----------------------------------------------
+            // PLAYER
+            // ----------------------------------------------
+
+            createPlayer();
+
+
+            // ----------------------------------------------
+            // RESIZE
+            // ----------------------------------------------
+
+            window.addEventListener(
+
+                "resize",
+
+                onResize
+
+            );
+
+        }
+
+
+        // ==================================================
+        // TRACKS
+        // ==================================================
+
+        function createTracks() {
+
+
+            for (
+                let z = 0;
+                z > -200;
+                z -= 10
+            ) {
+
+
+                for (
+                    let lane = 0;
+                    lane < 3;
+                    lane++
+                ) {
+
+
+                    const railGeometry =
+                        new THREE.BoxGeometry(
+
+                            0.15,
+
+                            0.15,
+
+                            10
+
+                        );
+
+
+                    const railMaterial =
+                        new THREE.MeshStandardMaterial({
+
+                            color:
+                                0xaaaaaa
+
+                        });
+
+
+                    const rail =
+                        new THREE.Mesh(
+
+                            railGeometry,
+
+                            railMaterial
+
+                        );
+
+
+                    rail.position.set(
+
+                        lanes[lane],
+
+                        0.2,
+
+                        z
+
+                    );
+
+
+                    scene.add(
+                        rail
+                    );
+
+
+                    tracks.push(
+                        rail
+                    );
+
+
+                    // Sleepers
+
+                    const sleeperGeometry =
+                        new THREE.BoxGeometry(
+
+                            13,
+
+                            0.2,
+
+                            0.5
+
+                        );
+
+
+                    const sleeperMaterial =
+                        new THREE.MeshStandardMaterial({
+
+                            color:
+                                0x442211
+
+                        });
+
+
+                    const sleeper =
+                        new THREE.Mesh(
+
+                            sleeperGeometry,
+
+                            sleeperMaterial
+
+                        );
+
+
+                    sleeper.position.set(
+
+                        0,
+
+                        0.1,
+
+                        z
+
+                    );
+
+
+                    scene.add(
+                        sleeper
+                    );
+
+
+                    tracks.push(
+                        sleeper
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        // ==================================================
+        // BUILDINGS
+        // ==================================================
+
+        function createBuildings() {
+
+
+            for (
+                let z = 0;
+                z > -200;
+                z -= 15
+            ) {
+
+
+                // Left building
+
+                createBuilding(
+
+                    -12,
+
+                    z
+
+                );
+
+
+                // Right building
+
+                createBuilding(
+
+                    12,
+
+                    z - 7
+
+                );
+
+            }
+
+        }
+
+
+        function createBuilding(
+            x,
+            z
+        ) {
+
+
+            const width =
+                5 + Math.random() * 5;
+
+
+            const height =
+                5 + Math.random() * 15;
+
+
+            const geometry =
+                new THREE.BoxGeometry(
+
+                    width,
+
+                    height,
+
+                    8
+
+                );
+
+
+            const material =
+                new THREE.MeshStandardMaterial({
+
+                    color:
+                        0x666666
+
+                });
+
+
+            const building =
+                new THREE.Mesh(
+
+                    geometry,
+
+                    material
+
+                );
+
+
+            building.position.set(
+
+                x,
+
+                height / 2,
+
+                z
+
+            );
+
+
+            scene.add(
+                building
+            );
+
+
+            buildings.push(
+                building
+            );
+
+        }
+
+
+        // ==================================================
+        // PLAYER
+        // ==================================================
+
+        function createPlayer() {
+
+
+            player =
+                new THREE.Group();
+
+
+            // Body
+
+            const bodyGeometry =
+                new THREE.BoxGeometry(
+
+                    1.2,
+
+                    2,
+
+                    0.8
+
+                );
+
+
+            const bodyMaterial =
+                new THREE.MeshStandardMaterial({
+
+                    color:
+                        0x2266ff
+
+                });
+
+
+            playerBody =
+                new THREE.Mesh(
+
+                    bodyGeometry,
+
+                    bodyMaterial
+
+                );
+
+
+            playerBody.position.y =
+                1.5;
+
+
+            player.add(
+                playerBody
+            );
+
+
+            // Head
+
+            const headGeometry =
+                new THREE.SphereGeometry(
+
+                    0.55,
+
+                    24,
+
+                    24
+
+                );
+
+
+            const headMaterial =
+                new THREE.MeshStandardMaterial({
+
+                    color:
+                        0xffcc99
+
+                });
+
+
+            playerHead =
+                new THREE.Mesh(
+
+                    headGeometry,
+
+                    headMaterial
+
+                );
+
+
+            playerHead.position.y =
+                3;
+
+
+            player.add(
+                playerHead
+            );
+
+
+            player.position.set(
+
+                lanes[playerLane],
+
+                0,
+
+                5
+
+            );
+
+
+            scene.add(
+                player
+            );
+
+        }
+
+
+        // ==================================================
+        // POSE LOOP
+        // ==================================================
+
+        async function poseLoop() {
+
+
+            if (
+                !gameRunning
+            ) {
+
+                return;
+
+            }
+
+
+            webcam.update();
+
+
+            const result =
+                await model.estimatePose(
+
+                    webcam.canvas
+
+                );
+
+
+            const prediction =
+                await model.predict(
+
+                    result.posenetOutput
+
+                );
+
+
+            let bestProbability =
+                0;
+
+
+            let bestPose =
+                "UNKNOWN";
+
+
+            for (
+                let i = 0;
+                i < prediction.length;
+                i++
+            ) {
+
+
+                if (
+
+                    prediction[i]
+                        .probability
+                    >
+                    bestProbability
+
+                ) {
+
+                    bestProbability =
+                        prediction[i]
+                            .probability;
+
+
+                    bestPose =
+                        prediction[i]
+                            .className;
+
+                }
+
+            }
+
+
+            document.getElementById(
+                "pose"
+            ).innerText =
+
+                "Pose: " +
+
+                bestPose +
+
+                " " +
+
+                Math.round(
+                    bestProbability * 100
+                ) +
+
+                "%";
+
+
+            // Camera display
+
+            cameraCtx.drawImage(
+
+                webcam.canvas,
+
+                0,
+
+                0
+
+            );
+
+
+            if (
+                result.pose
+            ) {
+
+
+                tmPose.drawKeypoints(
+
+                    result.pose.keypoints,
+
+                    0.5,
+
+                    cameraCtx
+
+                );
+
+
+                tmPose.drawSkeleton(
+
+                    result.pose.keypoints,
+
+                    0.5,
+
+                    cameraCtx
+
+                );
+
+            }
+
+
+            // Process pose
+
+            if (
+                bestProbability >=
+                CONFIDENCE
+            ) {
+
+                processPose(
+
+                    bestPose
+
+                );
+
+            }
+
+
+            requestAnimationFrame(
+                poseLoop
+            );
+
+        }
+
+
+        // ==================================================
+        // PROCESS POSE
+        // ==================================================
+
+        function processPose(
+            pose
+        ) {
+
+
+            pose =
+                pose.toUpperCase()
+                    .trim();
+
+
+            const now =
+                Date.now();
+
+
+            if (
+
+                pose === lastPose &&
+
+                now - lastPoseTime
+                <
+                POSE_DELAY
+
+            ) {
+
+                return;
+
+            }
+
+
+            lastPose =
+                pose;
+
+
+            lastPoseTime =
+                now;
+
+
+            console.log(
+                "POSE:",
+                pose
+            );
+
+
+            if (
+                pose === "LEFT"
+            ) {
+
+                moveLeft();
+
+            }
+
+
+            else if (
+                pose === "RIGHT"
+            ) {
+
+                moveRight();
+
+            }
+
+
+            else if (
+                pose === "CENTER"
+            ) {
+
+                moveCenter();
+
+            }
+
+
+            else if (
+                pose === "JUMP"
+            ) {
+
+                jump();
+
+            }
+
+
+            else if (
+                pose === "DOWN"
+            ) {
+
+                duck();
+
+            }
+
+        }
+
+
+        // ==================================================
+        // MOVE LEFT
+        // ==================================================
+
+        function moveLeft() {
+
+
+            playerLane--;
+
+            if (
+                playerLane < 0
+            ) {
+
+                playerLane = 0;
+
+            }
+
+
+            targetX =
+                lanes[playerLane];
+
+        }
+
+
+        // ==================================================
+        // MOVE CENTER
+        // ==================================================
+
+        function moveCenter() {
+
+
+            playerLane =
+                1;
+
+
+            targetX =
+                lanes[1];
+
+        }
+
+
+        // ==================================================
+        // MOVE RIGHT
+        // ==================================================
+
+        function moveRight() {
+
+
+            playerLane++;
+
+
+            if (
+                playerLane > 2
+            ) {
+
+                playerLane = 2;
+
+            }
+
+
+            targetX =
+                lanes[playerLane];
+
+        }
+
+
+        // ==================================================
+        // JUMP
+        // ==================================================
+
+        function jump() {
+
+
+            if (
+                jumping
+            ) {
+
+                return;
+
+            }
+
+
+            jumping =
+                true;
+
+
+            playerY =
+                0;
+
+
+            const start =
+                performance.now();
+
+
+            const duration =
+                700;
+
+
+            function animateJump(
+                time
+            ) {
+
+
+                const progress =
+                    (time - start)
+                    /
+                    duration;
+
+
+                if (
+                    progress >= 1
+                ) {
+
+
+                    playerY =
+                        0;
+
+
+                    jumping =
+                        false;
+
+
+                    return;
+
+                }
+
+
+                playerY =
+
+                    Math.sin(
+                        progress *
+                        Math.PI
+                    ) * 5;
+
+
+                requestAnimationFrame(
+                    animateJump
+                );
+
+            }
+
+
+            requestAnimationFrame(
+                animateJump
+            );
+
+        }
+
+
+        // ==================================================
+        // DUCK
+        // ==================================================
+
+        function duck() {
+
+
+            if (
+                ducking
+            ) {
+
+                return;
+
+            }
+
+
+            ducking =
+                true;
+
+
+            player.scale.y =
+                0.5;
+
+
+            setTimeout(
+
+                function () {
+
+
+                    player.scale.y =
+                        1;
+
+
+                    ducking =
+                        false;
+
+
+                },
+
+                700
+
+            );
+
+        }
+
+
+        // ==================================================
+        // CREATE OBSTACLE
+        // ==================================================
+
+        function createObstacle() {
+
+
+            const lane =
+                Math.floor(
+
+                    Math.random() * 3
+
+                );
+
+
+            const type =
+                Math.random();
+
+
+            let obstacle;
+
+
+            // ----------------------------------------------
+            // TRAIN
+            // ----------------------------------------------
+
+            if (
+                type < 0.65
+            ) {
+
+
+                const geometry =
+                    new THREE.BoxGeometry(
+
+                        3,
+
+                        4,
+
+                        8
+
+                    );
+
+
+                const material =
+                    new THREE.MeshStandardMaterial({
+
+                        color:
+                            0xcc2222
+
+                    });
+
+
+                obstacle =
+                    new THREE.Mesh(
+
+                        geometry,
+
+                        material
+
+                    );
+
+
+                obstacle.position.y =
+                    2;
+
+
+                obstacle.userData.type =
+                    "TRAIN";
+
+            }
+
+
+            // ----------------------------------------------
+            // BARRIER
+            // ----------------------------------------------
+
+            else {
+
+
+                const geometry =
+                    new THREE.BoxGeometry(
+
+                        3,
+
+                        1.5,
+
+                        1
+
+                    );
+
+
+                const material =
+                    new THREE.MeshStandardMaterial({
+
+                        color:
+                            0xffaa00
+
+                    });
+
+
+                obstacle =
+                    new THREE.Mesh(
+
+                        geometry,
+
+                        material
+
+                    );
+
+
+                obstacle.position.y =
+                    0.75;
+
+
+                obstacle.userData.type =
+                    "BARRIER";
+
+            }
+
+
+            obstacle.position.x =
+                lanes[lane];
+
+
+            obstacle.position.z =
+                -100;
+
+
+            obstacle.userData.lane =
+                lane;
+
+
+            scene.add(
+                obstacle
+            );
+
+
+            obstacles.push(
+                obstacle
+            );
+
+        }
+
+
+        // ==================================================
+        // CREATE COIN
+        // ==================================================
+
+        function createCoin() {
+
+
+            const geometry =
+                new THREE.TorusGeometry(
+
+                    0.6,
+
+                    0.2,
+
+                    12,
+
+                    24
+
+                );
+
+
+            const material =
+                new THREE.MeshStandardMaterial({
+
+                    color:
+                        0xffd700,
+
+                    metalness:
+                        0.8,
+
+                    roughness:
+                        0.2
+
+                });
+
+
+            const coin =
+                new THREE.Mesh(
+
+                    geometry,
+
+                    material
+
+                );
+
+
+            const lane =
+                Math.floor(
+
+                    Math.random() * 3
+
+                );
+
+
+            coin.position.set(
+
+                lanes[lane],
+
+                2,
+
+                -100
+
+            );
+
+
+            coin.rotation.x =
+                Math.PI / 2;
+
+
+            coin.userData.lane =
+                lane;
+
+
+            scene.add(
+                coin
+            );
+
+
+            coins.push(
+                coin
+            );
+
+        }
+
+
+        // ==================================================
+        // GAME LOOP
+        // ==================================================
+
+        function gameLoop() {
+
+
+            if (
+                !gameRunning
+            ) {
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------
+            // PLAYER MOVEMENT
+            // ----------------------------------------------
+
+            player.position.x +=
+
+                (
+                    targetX -
+                    player.position.x
+                ) * 0.15;
+
+
+            player.position.y =
+                playerY;
+
+
+            // ----------------------------------------------
+            // MOVE TRACK
+            // ----------------------------------------------
+
+            tracks.forEach(
+
+                function (track) {
+
+
+                    track.position.z +=
+                        speed;
+
+
+                    if (
+                        track.position.z
+                        >
+                        20
+                    ) {
+
+                        track.position.z -=
+                            210;
+
+                    }
+
+                }
+
+            );
+
+
+            // ----------------------------------------------
+            // MOVE BUILDINGS
+            // ----------------------------------------------
+
+            buildings.forEach(
+
+                function (building) {
+
+
+                    building.position.z +=
+                        speed;
+
+
+                    if (
+                        building.position.z
+                        >
+                        20
+                    ) {
+
+                        building.position.z -=
+                            210;
+
+                    }
+
+                }
+
+            );
+
+
+            // ----------------------------------------------
+            // OBSTACLES
+            // ----------------------------------------------
+
+            for (
+
+                let i =
+                    obstacles.length - 1;
+
+                i >= 0;
+
+                i--
+
+            ) {
+
+
+                const obstacle =
+                    obstacles[i];
+
+
+                obstacle.position.z +=
+                    speed;
+
+
+                // Collision
+
+                if (
+                    checkObstacleCollision(
+                        obstacle
+                    )
+                ) {
+
+
+                    endGame();
+
+
+                    return;
+
+                }
+
+
+                // Remove
+
+                if (
+                    obstacle.position.z
+                    >
+                    20
+                ) {
+
+
+                    scene.remove(
+                        obstacle
+                    );
+
+
+                    obstacles.splice(
+                        i,
+                        1
+                    );
+
+
+                    score += 10;
+
+                }
+
+            }
+
+
+            // ----------------------------------------------
+            // COINS
+            // ----------------------------------------------
+
+            for (
+
+                let i =
+                    coins.length - 1;
+
+                i >= 0;
+
+                i--
+
+            ) {
+
+
+                const coin =
+                    coins[i];
+
+
+                coin.position.z +=
+                    speed;
+
+
+                coin.rotation.z +=
+                    0.08;
+
+
+                if (
+                    checkCoinCollision(
+                        coin
+                    )
+                ) {
+
+
+                    scene.remove(
+                        coin
+                    );
+
+
+                    coins.splice(
+                        i,
+                        1
+                    );
+
+
+                    score += 25;
+
+                }
+
+
+                else if (
+                    coin.position.z
+                    >
+                    20
+                ) {
+
+
+                    scene.remove(
+                        coin
+                    );
+
+
+                    coins.splice(
+                        i,
+                        1
+                    );
+
+                }
+
+            }
+
+
+            // ----------------------------------------------
+            // SPAWN
+            // ----------------------------------------------
+
+            spawnTimer +=
+                speed;
+
+
+            coinTimer +=
+                speed;
+
+
+            if (
+                spawnTimer >
+                80
+            ) {
+
+
+                createObstacle();
+
+
+                spawnTimer =
+                    0;
+
+            }
+
+
+            if (
+                coinTimer >
+                45
+            ) {
+
+
+                createCoin();
+
+
+                coinTimer =
+                    0;
+
+            }
+
+
+            // ----------------------------------------------
+            // SCORE
+            // ----------------------------------------------
+
+            score +=
+                0.03;
+
+
+            document.getElementById(
+                "score"
+            ).innerText =
+
+                "Score: " +
+
+                Math.floor(
+                    score
+                );
+
+
+            // ----------------------------------------------
+            // SPEED
+            // ----------------------------------------------
+
+            speed +=
+                0.00002;
+
+
+            document.getElementById(
+                "speed"
+            ).innerText =
+
+                "Speed: " +
+
+                speed.toFixed(2);
+
+
+            // ----------------------------------------------
+            // CAMERA
+            // ----------------------------------------------
+
+            camera.lookAt(
+
+                player.position.x,
+
+                2,
+
+                -40
+
+            );
+
+
+            // ----------------------------------------------
+            // RENDER
+            // ----------------------------------------------
+
+            renderer.render(
+
+                scene,
+
+                camera
+
+            );
+
+
+            requestAnimationFrame(
+                gameLoop
+            );
+
+        }
+
+
+        // ==================================================
+        // OBSTACLE COLLISION
+        // ==================================================
+
+        function checkObstacleCollision(
+            obstacle
+        ) {
+
+
+            // Not same lane
+
+            if (
+
+                obstacle.userData.lane
+                !==
+                playerLane
+
+            ) {
+
+                return false;
+
+            }
+
+
+            // Jumping over obstacle
+
+            if (
+                jumping
+            ) {
+
+                return false;
+
+            }
+
+
+            // Ducking under high obstacle
+
+            if (
+
+                ducking &&
+
+                obstacle.userData.type
+                ===
+                "TRAIN"
+
+            ) {
+
+                return false;
+
+            }
+
+
+            const distanceZ =
+                Math.abs(
+
+                    obstacle.position.z -
+                    player.position.z
+
+                );
+
+
+            if (
+                distanceZ > 3
+            ) {
+
+                return false;
+
+            }
+
+
+            // Train
+
+            if (
+                obstacle.userData.type
+                ===
+                "TRAIN"
+            ) {
+
+
+                if (
+                    playerY < 2
+                ) {
+
+                    return true;
+
+                }
+
+            }
+
+
+            // Barrier
+
+            else {
+
+
+                if (
+                    playerY < 1.5 &&
+                    !ducking
+                ) {
+
+                    return true;
+
+                }
+
+            }
+
+
+            return false;
+
+        }
+
+
+        // ==================================================
+        // COIN COLLISION
+        // ==================================================
+
+        function checkCoinCollision(
+            coin
+        ) {
+
+
+            if (
+
+                coin.userData.lane
+                !==
+                playerLane
+
+            ) {
+
+                return false;
+
+            }
+
+
+            const distanceZ =
+                Math.abs(
+
+                    coin.position.z -
+                    player.position.z
+
+                );
+
+
+            return (
+                distanceZ < 3
+            );
+
+        }
+
+
+        // ==================================================
+        // GAME OVER
+        // ==================================================
+
+        function endGame() {
+
+
+            gameRunning =
+                false;
+
+
+            document.getElementById(
+                "finalScore"
+            ).innerText =
+
+                "Score: " +
+
+                Math.floor(
+                    score
+                );
+
+
+            document.getElementById(
+                "gameOver"
+            ).style.display =
+                "flex";
+
+        }
+
+
+        // ==================================================
+        // RESTART
+        // ==================================================
+
+        function restartGame() {
+
+
+            location.reload();
+
+        }
+
+
+        // ==================================================
+        // RESIZE
+        // ==================================================
+
+        function onResize() {
+
+
+            camera.aspect =
+
+                window.innerWidth /
+                window.innerHeight;
+
+
+            camera.updateProjectionMatrix();
+
+
+            renderer.setSize(
+
+                window.innerWidth,
+
+                window.innerHeight
+
+            );
+
+        }
+
+
+    </script>
+
+</body>
+
+</html>
